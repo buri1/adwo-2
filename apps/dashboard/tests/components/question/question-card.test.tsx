@@ -1,11 +1,12 @@
 /**
  * QuestionCard Component Tests
- * Story 3.2 — Question Display in Chat UI
+ * Story 3.2 & 3.3 — Question Display and Answer in Chat UI
  */
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QuestionCard } from "@/components/question/question-card";
 import type { PendingQuestion } from "@/stores/question-store";
 
@@ -116,7 +117,8 @@ describe("QuestionCard", () => {
 
       render(<QuestionCard question={question} />);
 
-      expect(screen.getAllByRole("button")).toHaveLength(4);
+      // 4 option buttons + 1 send button = 5 total
+      expect(screen.getAllByRole("button")).toHaveLength(5);
     });
   });
 
@@ -141,7 +143,7 @@ describe("QuestionCard", () => {
   });
 
   describe("interactions", () => {
-    it("should call onOptionSelect when option button is clicked", () => {
+    it("should call onOptionSelect when option button is clicked (legacy)", () => {
       const onOptionSelect = vi.fn();
       const question = createPendingQuestion({ id: "q_test" });
 
@@ -155,7 +157,7 @@ describe("QuestionCard", () => {
       expect(onOptionSelect).toHaveBeenCalledWith("q_test", 1);
     });
 
-    it("should call onOptionSelect with correct option number", () => {
+    it("should call onOptionSelect with correct option number (legacy)", () => {
       const onOptionSelect = vi.fn();
       const question = createPendingQuestion({ id: "q_test" });
 
@@ -176,6 +178,108 @@ describe("QuestionCard", () => {
 
       const optionButton = screen.getByRole("button", { name: /1.*Option A/i });
       expect(() => fireEvent.click(optionButton)).not.toThrow();
+    });
+
+    it("should call onAnswer when option button is clicked", async () => {
+      const onAnswer = vi.fn().mockResolvedValue(undefined);
+      const question = createPendingQuestion({ id: "q_test", paneId: "%42" });
+
+      render(<QuestionCard question={question} onAnswer={onAnswer} />);
+
+      const optionButton = screen.getByRole("button", { name: /1.*Option A/i });
+      fireEvent.click(optionButton);
+
+      await waitFor(() => {
+        expect(onAnswer).toHaveBeenCalledWith("q_test", "%42", "1");
+      });
+    });
+
+    it("should prefer onAnswer over onOptionSelect when both provided", async () => {
+      const onAnswer = vi.fn().mockResolvedValue(undefined);
+      const onOptionSelect = vi.fn();
+      const question = createPendingQuestion({ id: "q_test", paneId: "%42" });
+
+      render(
+        <QuestionCard
+          question={question}
+          onAnswer={onAnswer}
+          onOptionSelect={onOptionSelect}
+        />
+      );
+
+      const optionButton = screen.getByRole("button", { name: /1.*Option A/i });
+      fireEvent.click(optionButton);
+
+      await waitFor(() => {
+        expect(onAnswer).toHaveBeenCalled();
+      });
+      expect(onOptionSelect).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("custom answer input", () => {
+    it("should render custom answer input field", () => {
+      const question = createPendingQuestion();
+      render(<QuestionCard question={question} />);
+
+      expect(
+        screen.getByPlaceholderText("Type a custom answer...")
+      ).toBeInTheDocument();
+    });
+
+    it("should render send button", () => {
+      const question = createPendingQuestion();
+      render(<QuestionCard question={question} />);
+
+      // Find the send button (it contains an SVG icon)
+      const buttons = screen.getAllByRole("button");
+      const sendButton = buttons.find(
+        (btn) => btn.querySelector("svg") && !btn.textContent?.match(/\d/)
+      );
+      expect(sendButton).toBeInTheDocument();
+    });
+
+    it("should disable send button when input is empty", () => {
+      const question = createPendingQuestion();
+      render(<QuestionCard question={question} />);
+
+      const buttons = screen.getAllByRole("button");
+      const sendButton = buttons.find(
+        (btn) =>
+          btn.querySelector('svg[class*="lucide-send"]') !== null ||
+          (btn.querySelector("svg") && !btn.textContent?.match(/\d/))
+      );
+      expect(sendButton).toBeDisabled();
+    });
+
+    it("should call onAnswer when submitting custom answer via Enter", async () => {
+      const user = userEvent.setup();
+      const onAnswer = vi.fn().mockResolvedValue(undefined);
+      const question = createPendingQuestion({ id: "q_test", paneId: "%42" });
+
+      render(<QuestionCard question={question} onAnswer={onAnswer} />);
+
+      const input = screen.getByPlaceholderText("Type a custom answer...");
+      await user.type(input, "Custom response{enter}");
+
+      await waitFor(() => {
+        expect(onAnswer).toHaveBeenCalledWith("q_test", "%42", "Custom response");
+      });
+    });
+
+    it("should clear input after successful submission", async () => {
+      const user = userEvent.setup();
+      const onAnswer = vi.fn().mockResolvedValue(undefined);
+      const question = createPendingQuestion({ id: "q_test", paneId: "%42" });
+
+      render(<QuestionCard question={question} onAnswer={onAnswer} />);
+
+      const input = screen.getByPlaceholderText("Type a custom answer...");
+      await user.type(input, "My answer{enter}");
+
+      await waitFor(() => {
+        expect(input).toHaveValue("");
+      });
     });
   });
 
@@ -201,6 +305,104 @@ describe("QuestionCard", () => {
       render(<QuestionCard question={question} />);
 
       expect(screen.getByText("short")).toBeInTheDocument();
+    });
+  });
+
+  describe("answered state", () => {
+    it("should show answered badge when question is answered", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "Option A",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      render(<QuestionCard question={question} />);
+
+      expect(screen.getByText("Answered")).toBeInTheDocument();
+    });
+
+    it("should display user answer when answered", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "My custom answer",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      render(<QuestionCard question={question} />);
+
+      expect(screen.getByText("My custom answer")).toBeInTheDocument();
+    });
+
+    it("should show 'Your Answer' label", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "1",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      render(<QuestionCard question={question} />);
+
+      expect(screen.getByText("Your Answer")).toBeInTheDocument();
+    });
+
+    it("should have green styling for answered questions", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "1",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      const { container } = render(<QuestionCard question={question} />);
+
+      const card = container.querySelector(".border-l-green-500");
+      expect(card).toBeInTheDocument();
+    });
+
+    it("should not show option buttons when answered", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "1",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      render(<QuestionCard question={question} />);
+
+      expect(
+        screen.queryByRole("button", { name: /1.*Option A/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("should not show custom answer input when answered", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "1",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      render(<QuestionCard question={question} />);
+
+      expect(
+        screen.queryByPlaceholderText("Type a custom answer...")
+      ).not.toBeInTheDocument();
+    });
+
+    it("should show original question text with strikethrough", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "1",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      const { container } = render(<QuestionCard question={question} />);
+
+      const strikethroughText = container.querySelector(".line-through");
+      expect(strikethroughText).toBeInTheDocument();
+    });
+
+    it("should display answered timestamp", () => {
+      const question = createPendingQuestion({
+        answered: true,
+        userAnswer: "1",
+        answeredAt: "2024-01-15T10:31:00Z",
+      });
+      render(<QuestionCard question={question} />);
+
+      // Should show at least two timestamps (original and answered)
+      const timestamps = screen.getAllByText(/\d{2}:\d{2}:\d{2}/);
+      expect(timestamps.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

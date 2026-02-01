@@ -1,6 +1,6 @@
 /**
  * ADWO 2.0 Question Store Tests
- * Story 3.2 — Question Display in Chat UI
+ * Story 3.2 & 3.3 — Question Display and Answer in Chat UI
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -257,9 +257,116 @@ describe("QuestionStore", () => {
       expect(useQuestionStore.getState().hasPendingQuestions()).toBe(false);
     });
 
-    it("should return true when questions exist", () => {
+    it("should return true when unanswered questions exist", () => {
       useQuestionStore.getState().addQuestion(createQuestionEvent());
       expect(useQuestionStore.getState().hasPendingQuestions()).toBe(true);
+    });
+
+    it("should return false when all questions are answered", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+      useQuestionStore.getState().answerQuestion("evt_001", "1");
+      expect(useQuestionStore.getState().hasPendingQuestions()).toBe(false);
+    });
+  });
+
+  describe("answerQuestion", () => {
+    it("should mark question as answered with user answer", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+
+      useQuestionStore.getState().answerQuestion("evt_001", "Option A");
+
+      const state = useQuestionStore.getState();
+      const question = state.questions.find((q) => q.id === "evt_001");
+      expect(question?.answered).toBe(true);
+      expect(question?.userAnswer).toBe("Option A");
+      expect(question?.answeredAt).toBeDefined();
+    });
+
+    it("should set answeredAt timestamp", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+
+      const beforeAnswer = new Date().toISOString();
+      useQuestionStore.getState().answerQuestion("evt_001", "1");
+      const afterAnswer = new Date().toISOString();
+
+      const question = useQuestionStore.getState().questions.find((q) => q.id === "evt_001");
+      expect(question?.answeredAt).toBeDefined();
+      expect(new Date(question!.answeredAt!).getTime()).toBeGreaterThanOrEqual(
+        new Date(beforeAnswer).getTime()
+      );
+      expect(new Date(question!.answeredAt!).getTime()).toBeLessThanOrEqual(
+        new Date(afterAnswer).getTime()
+      );
+    });
+
+    it("should not affect other questions", () => {
+      const events = [
+        createQuestionEvent({ id: "evt_001" }),
+        createQuestionEvent({ id: "evt_002" }),
+      ];
+      useQuestionStore.getState().addQuestions(events);
+
+      useQuestionStore.getState().answerQuestion("evt_001", "Yes");
+
+      const state = useQuestionStore.getState();
+      expect(state.questions.find((q) => q.id === "evt_001")?.answered).toBe(true);
+      expect(state.questions.find((q) => q.id === "evt_002")?.answered).toBeUndefined();
+    });
+
+    it("should handle answering non-existent question gracefully", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+
+      // Should not throw
+      useQuestionStore.getState().answerQuestion("non_existent", "answer");
+
+      expect(useQuestionStore.getState().questions).toHaveLength(1);
+    });
+
+    it("should store custom text answers", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+
+      useQuestionStore.getState().answerQuestion("evt_001", "This is a custom long answer");
+
+      const question = useQuestionStore.getState().questions.find((q) => q.id === "evt_001");
+      expect(question?.userAnswer).toBe("This is a custom long answer");
+    });
+  });
+
+  describe("getQuestion", () => {
+    it("should return a question by ID", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+
+      const question = useQuestionStore.getState().getQuestion("evt_001");
+
+      expect(question).toBeDefined();
+      expect(question?.id).toBe("evt_001");
+      expect(question?.metadata.header).toBe("Test Header");
+    });
+
+    it("should return undefined for non-existent ID", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+
+      const question = useQuestionStore.getState().getQuestion("non_existent");
+
+      expect(question).toBeUndefined();
+    });
+
+    it("should return question with answered state", () => {
+      const event = createQuestionEvent({ id: "evt_001" });
+      useQuestionStore.getState().addQuestion(event);
+      useQuestionStore.getState().answerQuestion("evt_001", "My answer");
+
+      const question = useQuestionStore.getState().getQuestion("evt_001");
+
+      expect(question?.answered).toBe(true);
+      expect(question?.userAnswer).toBe("My answer");
     });
   });
 });

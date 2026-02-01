@@ -41,6 +41,9 @@ export type {
   NormalizedTerminalEvent,
   QuestionMetadata,
   QuestionOption,
+  NormalizedStreamEvent,
+  SessionMetadata,
+  StreamJsonEvent,
 } from "@adwo/shared";
 export { DeltaDetector, stripAnsi, detectEventType } from "./delta-detector";
 export {
@@ -50,6 +53,21 @@ export {
   getQuestionDetector,
   resetQuestionDetector,
 } from "./question-detector";
+
+// Stream JSON support (new approach)
+export {
+  JsonlFileReader,
+  type JsonlFileReaderConfig,
+  type StreamEventHandler,
+} from "./jsonl-file-reader";
+export {
+  StreamJsonBridge,
+  getStreamJsonBridge,
+  resetStreamJsonBridge,
+  type StreamJsonBridgeConfig,
+  type StreamEventCallback,
+  type SessionCallback,
+} from "./stream-json-bridge";
 
 export interface EventBridgeFullConfig extends EventBridgeConfig {
   projectId: string;

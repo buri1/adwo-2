@@ -192,8 +192,8 @@ describe("EventBridge", () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       expect(events.length).toBeGreaterThan(0);
-      expect(events[0].paneId).toBe("pane-1");
-      expect(events[0].content).toContain("output from pane-1");
+      expect(events[0]!.paneId).toBe("pane-1");
+      expect(events[0]!.content).toContain("output from pane-1");
     });
   });
 

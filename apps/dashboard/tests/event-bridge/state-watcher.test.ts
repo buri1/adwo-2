@@ -65,7 +65,7 @@ describe("StateWatcher", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(changes.length).toBeGreaterThanOrEqual(1);
-      expect(changes[0].added).toContain("pane-abc123");
+      expect(changes[0]!.added).toContain("pane-abc123");
     });
 
     it("should detect multiple panes from panes array", async () => {
@@ -90,9 +90,9 @@ describe("StateWatcher", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(changes.length).toBeGreaterThanOrEqual(1);
-      expect(changes[0].added).toContain("pane-1");
-      expect(changes[0].added).toContain("pane-2");
-      expect(changes[0].added).toContain("pane-3");
+      expect(changes[0]!.added).toContain("pane-1");
+      expect(changes[0]!.added).toContain("pane-2");
+      expect(changes[0]!.added).toContain("pane-3");
     });
 
     it("should detect new pane when added", async () => {

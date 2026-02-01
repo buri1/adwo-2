@@ -101,11 +101,11 @@ describe("TerminalReader", () => {
       await vi.advanceTimersByTimeAsync(100);
 
       expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
+      expect(events[0]!).toMatchObject({
         paneId: "pane-1",
         content: "hello world",
       });
-      expect(events[0].timestamp).toBeGreaterThan(0);
+      expect(events[0]!.timestamp).toBeGreaterThan(0);
     });
   });
 
@@ -247,12 +247,12 @@ describe("TerminalReader", () => {
 
       // Error should be logged
       expect(errors).toHaveLength(1);
-      expect(errors[0].paneId).toBe("pane-1");
-      expect(errors[0].error.message).toBe("connection refused");
+      expect(errors[0]!.paneId).toBe("pane-1");
+      expect(errors[0]!.error.message).toBe("connection refused");
 
       // pane-2 should still work
       expect(events).toHaveLength(1);
-      expect(events[0].paneId).toBe("pane-2");
+      expect(events[0]!.paneId).toBe("pane-2");
     });
 
     it("should apply exponential backoff on errors", async () => {
@@ -304,7 +304,7 @@ describe("TerminalReader", () => {
       // After backoff, should retry and succeed
       await vi.advanceTimersByTimeAsync(200);
       expect(events).toHaveLength(1);
-      expect(events[0].content).toBe("recovered");
+      expect(events[0]!.content).toBe("recovered");
     });
 
     it("should cap backoff at maxBackoffMs", async () => {

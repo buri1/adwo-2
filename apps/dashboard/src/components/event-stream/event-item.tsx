@@ -3,6 +3,7 @@
  * Story 1.5 — Dashboard Event Stream UI
  *
  * Displays a single event with visual distinction based on pane/type.
+ * Supports both terminal events (legacy) and stream-json events.
  */
 
 "use client";
@@ -15,11 +16,17 @@ import {
   HelpCircle,
   CheckCircle,
   Loader2,
+  MessageSquare,
+  Wrench,
+  Zap,
+  DollarSign,
+  Settings,
 } from "lucide-react";
-import type { NormalizedTerminalEvent, TerminalEventType } from "@adwo/shared";
+import type { TerminalEventType } from "@adwo/shared";
+import type { UnifiedEvent, StreamEventCategory } from "@/stores/event-store";
 
 interface EventItemProps {
-  event: NormalizedTerminalEvent;
+  event: UnifiedEvent;
   paneColors?: Map<string, string>;
 }
 
@@ -35,8 +42,8 @@ const PANE_COLORS = [
   "bg-red-500/20 text-red-400 border-red-500/30",
 ];
 
-// Event type configurations
-const EVENT_TYPE_CONFIG: Record<
+// Event type configurations for terminal events (legacy)
+const TERMINAL_TYPE_CONFIG: Record<
   TerminalEventType,
   {
     icon: typeof Terminal;
@@ -68,6 +75,61 @@ const EVENT_TYPE_CONFIG: Record<
     iconColor: "text-green-500",
     badgeVariant: "default",
     bgColor: "bg-green-500/5 border-l-2 border-l-green-500",
+  },
+};
+
+// Event category configurations for stream-json events
+const STREAM_CATEGORY_CONFIG: Record<
+  StreamEventCategory,
+  {
+    icon: typeof Terminal;
+    iconColor: string;
+    badgeVariant: "default" | "secondary" | "destructive" | "outline";
+    bgColor: string;
+    label: string;
+  }
+> = {
+  text: {
+    icon: MessageSquare,
+    iconColor: "text-event-text",
+    badgeVariant: "secondary",
+    bgColor: "",
+    label: "text",
+  },
+  tool: {
+    icon: Wrench,
+    iconColor: "text-event-tool",
+    badgeVariant: "outline",
+    bgColor: "bg-event-tool/5 border-l-2 border-l-event-tool",
+    label: "tool",
+  },
+  hook: {
+    icon: Zap,
+    iconColor: "text-event-hook",
+    badgeVariant: "outline",
+    bgColor: "bg-event-hook/5 border-l-2 border-l-event-hook",
+    label: "hook",
+  },
+  result: {
+    icon: DollarSign,
+    iconColor: "text-event-result",
+    badgeVariant: "default",
+    bgColor: "bg-event-result/5 border-l-2 border-l-event-result",
+    label: "result",
+  },
+  system: {
+    icon: Settings,
+    iconColor: "text-muted-foreground",
+    badgeVariant: "secondary",
+    bgColor: "",
+    label: "system",
+  },
+  error: {
+    icon: AlertCircle,
+    iconColor: "text-red-500",
+    badgeVariant: "destructive",
+    bgColor: "bg-red-500/5 border-l-2 border-l-red-500",
+    label: "error",
   },
 };
 
@@ -109,9 +171,29 @@ export const EventItem = memo(function EventItem({
   event,
   paneColors,
 }: EventItemProps) {
-  const config = EVENT_TYPE_CONFIG[event.type];
+  // Get config based on event source
+  const isStreamEvent = event.source === "stream";
+  const config = isStreamEvent && event.category
+    ? STREAM_CATEGORY_CONFIG[event.category]
+    : event.type
+      ? TERMINAL_TYPE_CONFIG[event.type]
+      : TERMINAL_TYPE_CONFIG.output;
+
   const Icon = config.icon;
   const paneColor = getPaneColor(event.pane_id, paneColors);
+
+  // Get display label
+  const typeLabel = isStreamEvent && event.category
+    ? (STREAM_CATEGORY_CONFIG[event.category]?.label ?? event.category)
+    : event.type;
+
+  // Format content - for tool events, show tool name prominently
+  const displayContent = isStreamEvent && event.tool
+    ? `${event.tool.name}: ${event.content}`
+    : event.content;
+
+  // Show cost for result events
+  const showCost = isStreamEvent && event.cost && event.cost.total_usd > 0;
 
   return (
     <div
@@ -124,7 +206,7 @@ export const EventItem = memo(function EventItem({
 
       {/* Content Area */}
       <div className="min-w-0 flex-1 space-y-1">
-        {/* Header: Pane Badge + Time */}
+        {/* Header: Pane Badge + Time + Type */}
         <div className="flex items-center gap-2 text-xs">
           <Badge
             variant="outline"
@@ -135,19 +217,24 @@ export const EventItem = memo(function EventItem({
           <span className="text-muted-foreground">
             {formatTimestamp(event.timestamp)}
           </span>
-          {event.type !== "output" && (
+          {typeLabel && typeLabel !== "output" && typeLabel !== "text" && (
             <Badge
               variant={config.badgeVariant}
               className="text-[10px] px-1.5 py-0"
             >
-              {event.type}
+              {typeLabel}
             </Badge>
+          )}
+          {showCost && event.cost && (
+            <span className="text-event-result font-medium tabular-nums">
+              ${event.cost.total_usd.toFixed(4)}
+            </span>
           )}
         </div>
 
         {/* Event Content */}
         <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-foreground/90">
-          {event.content.trim()}
+          {displayContent.trim()}
         </pre>
       </div>
     </div>

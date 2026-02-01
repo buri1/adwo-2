@@ -14,3 +14,15 @@ export type {
   EventRow,
 } from "./types";
 export { rowToEvent, eventToRow } from "./types";
+
+// Stream event persistence
+export {
+  StreamEventStore,
+  getStreamEventStore,
+  resetStreamEventStore,
+  type StreamEventStoreConfig,
+  type StreamEventQueryOptions,
+  type StreamEventQueryResult,
+  type StreamEventRow,
+  type StreamEventCategory,
+} from "./stream-event-store";

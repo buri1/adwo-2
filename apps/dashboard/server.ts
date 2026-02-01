@@ -10,9 +10,11 @@
 
 import { createServer } from "http";
 import { parse } from "url";
+import { join } from "path";
 import next from "next";
 import { getEventManager } from "./src/lib/websocket/event-manager";
 import { getOtelReceiver } from "./src/lib/otel";
+import { getEventBridge, getStreamEventAdapter } from "./src/lib/event-bridge";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -38,6 +40,52 @@ app.prepare().then(() => {
   const eventManager = getEventManager();
   eventManager.initialize(server);
 
+  // Initialize EventBridge to capture terminal events
+  // State file path: .bmad/orchestrator-state.json
+  const stateFilePath =
+    process.env["ORCHESTRATOR_STATE_FILE"] ??
+    join(process.cwd(), ".bmad", "orchestrator-state.json");
+
+  const eventBridge = getEventBridge({ stateFilePath });
+
+  // Forward normalized events to EventManager for WebSocket broadcast
+  eventBridge.onNormalizedEvent((event) => {
+    console.log(`[Server] Forwarding event: ${event.type} - ${event.content.slice(0, 50)}...`);
+    eventManager.emit(event);
+  });
+
+  eventBridge.onOutput((event) => {
+    console.log(
+      `[EventBridge] Output from pane ${event.paneId}: ${event.content.slice(0, 100)}...`
+    );
+  });
+
+  eventBridge.onPaneChange((added, removed) => {
+    if (added.length > 0) {
+      console.log(`[EventBridge] Panes added: ${added.join(", ")}`);
+    }
+    if (removed.length > 0) {
+      console.log(`[EventBridge] Panes removed: ${removed.join(", ")}`);
+    }
+  });
+
+  eventBridge.start().catch((err) => {
+    console.error("[Server] Failed to start EventBridge:", err);
+  });
+
+  // Initialize StreamEventAdapter for Claude Code stream-json events
+  // This watches /tmp/events-*.jsonl files created by Claude Code with --output-format stream-json
+  const streamEventAdapter = getStreamEventAdapter({
+    watchDir: process.env["STREAM_EVENTS_DIR"] ?? "/tmp",
+    filePattern: process.env["STREAM_EVENTS_PATTERN"] ?? "events-*.jsonl",
+    projectId: "adwo",
+    debug: dev, // Enable debug logging in development
+  });
+
+  streamEventAdapter.start().catch((err) => {
+    console.error("[Server] Failed to start StreamEventAdapter:", err);
+  });
+
   // Initialize OTEL receiver with cost update broadcasting
   // This creates an HTTP server on port 4318 for OTLP metrics
   const otelReceiver = getOtelReceiver({
@@ -60,5 +108,6 @@ app.prepare().then(() => {
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> WebSocket available at ws://${hostname}:${port}/api/ws`);
     console.log(`> OTEL receiver at http://${hostname}:4318/v1/metrics`);
+    console.log(`> Stream events watching: ${process.env["STREAM_EVENTS_DIR"] ?? "/tmp"}/events-*.jsonl`);
   });
 });

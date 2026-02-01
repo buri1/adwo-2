@@ -6,6 +6,7 @@
 
 import type { NormalizedTerminalEvent, AgentState, WorkflowState } from "./events.js";
 import type { CostMetric, CostTotals } from "./cost.js";
+import type { NormalizedStreamEvent, SessionMetadata } from "./stream-events.js";
 
 /**
  * WebSocket message types for server-client communication
@@ -17,7 +18,11 @@ export type WebSocketMessageType =
   | "event"
   | "heartbeat"
   | "error"
-  | "cost_update";
+  | "cost_update"
+  | "stream_event"
+  | "session_update"
+  | "session_start"
+  | "stream_error";
 
 /**
  * Base WebSocket message structure
@@ -98,4 +103,34 @@ export interface ConnectedClient {
   connectedAt: Date;
   lastEventTimestamp?: Date;
   lastEventId?: string;
+}
+
+/**
+ * Stream event payload — sent for Claude Code stream-json events
+ */
+export interface StreamEventPayload {
+  event: NormalizedStreamEvent;
+}
+
+/**
+ * Session update payload — sent when session metrics change
+ */
+export interface SessionUpdatePayload {
+  session: SessionMetadata;
+}
+
+/**
+ * Session start payload — sent when a new session is detected
+ */
+export interface SessionStartPayload {
+  paneId: string;
+  session: SessionMetadata;
+}
+
+/**
+ * Stream error payload — sent when stream processing errors occur
+ */
+export interface StreamErrorPayload {
+  paneId: string;
+  message: string;
 }

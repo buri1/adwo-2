@@ -81,21 +81,27 @@ function FilterPill({ type, active, onToggle }: FilterPillProps) {
 export function EventStreamToolbar() {
   const searchQuery = useEventStore((state) => state.searchQuery);
   const autoFollow = useEventStore((state) => state.autoFollow);
+  const streamFilters = useEventStore((state) => state.streamFilters);
   const setSearchQuery = useEventStore((state) => state.setSearchQuery);
   const setAutoFollow = useEventStore((state) => state.setAutoFollow);
-  const events = useEventStore((state) => state.events);
+  const toggleStreamFilter = useEventStore((state) => state.toggleStreamFilter);
+  const getFilteredEvents = useEventStore((state) => state.getFilteredEvents);
+  const getTotalCost = useEventStore((state) => state.getTotalCost);
 
-  // For now, we track active filters in local state
-  // TODO: Move to store when we have stream-json events
-  const activeFilters = new Set<StreamEventType>(["text", "tool", "hook", "result", "error"]);
+  // Convert streamFilters to Set for FilterPill
+  const activeFilters = new Set<StreamEventType>(
+    (Object.entries(streamFilters) as [StreamEventType, boolean][])
+      .filter(([, active]) => active)
+      .map(([type]) => type)
+  );
 
   const toggleFilter = (type: StreamEventType) => {
-    // TODO: Implement when store is updated for stream-json
-    console.log("Toggle filter:", type);
+    toggleStreamFilter(type);
   };
 
-  const totalCount = events.length;
-  const hasSearch = searchQuery.trim() !== "";
+  const filteredEvents = getFilteredEvents();
+  const totalCount = filteredEvents.length;
+  const totalCost = getTotalCost();
 
   return (
     <div className="flex flex-col gap-3 border-b border-border/50 bg-card/30 backdrop-blur-sm p-3">
@@ -133,6 +139,13 @@ export function EventStreamToolbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Cost display */}
+          {totalCost > 0 && (
+            <span className="text-xs font-medium text-event-result tabular-nums">
+              ${totalCost.toFixed(4)}
+            </span>
+          )}
+
           {/* Event count */}
           <span className="text-xs text-muted-foreground tabular-nums">
             {totalCount.toLocaleString()} events

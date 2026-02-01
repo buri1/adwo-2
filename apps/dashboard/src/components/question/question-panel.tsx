@@ -54,10 +54,19 @@ export function QuestionPanel({
   const events = useEventStore((state) => state.events);
 
   // Sync question events from event store
+  // Only terminal events can have question_metadata (legacy behavior)
   useEffect(() => {
-    const questionEvents = events.filter(
-      (e) => e.type === "question" && e.question_metadata
-    );
+    const questionEvents = events
+      .filter((e) => e.source === "terminal" && e.type === "question" && e.question_metadata)
+      .map((e) => ({
+        id: e.id,
+        pane_id: e.pane_id,
+        type: e.type as "question",
+        content: e.content,
+        timestamp: e.timestamp,
+        project_id: e.project_id ?? "default",
+        question_metadata: e.question_metadata,
+      }));
     if (questionEvents.length > 0) {
       addQuestions(questionEvents);
     }

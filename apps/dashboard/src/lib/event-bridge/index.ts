@@ -68,6 +68,15 @@ export {
   type StreamEventCallback,
   type SessionCallback,
 } from "./stream-json-bridge";
+export {
+  StreamEventAdapter,
+  getStreamEventAdapter,
+  resetStreamEventAdapter,
+  type StreamEventAdapterConfig,
+  type StreamEventMessage,
+  type SessionUpdateMessage,
+  type SessionStartMessage,
+} from "./stream-event-adapter";
 
 export interface EventBridgeFullConfig extends EventBridgeConfig {
   projectId: string;

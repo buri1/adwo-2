@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "references": [
+    { "path": "apps/dashboard" },
+    { "path": "packages/shared" }
+  ],
+  "files": []
+}

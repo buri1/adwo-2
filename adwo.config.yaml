@@ -1,0 +1,20 @@
+# ADWO 2.0 Configuration
+# Minimal for MVP, designed to be extensible
+
+version: "1.0"
+
+project:
+  name: "adwo-2"
+  # path is auto-detected from cwd
+
+# Future extensions (commented out for MVP):
+# orchestrator:
+#   state_file: "orchestrator/orchestrator-state.json"
+#
+# telemetry:
+#   enabled: true
+#   endpoint: "http://localhost:4317"
+#
+# dashboard:
+#   port: 3000
+#   theme: "dark"

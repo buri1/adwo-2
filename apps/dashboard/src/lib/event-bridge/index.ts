@@ -21,34 +21,52 @@
 
 import { StateWatcher } from "./state-watcher";
 import { TerminalReader } from "./terminal-reader";
+import { DeltaDetector } from "./delta-detector";
+import type { NormalizedTerminalEvent } from "@adwo/shared";
 import type {
   EventBridgeConfig,
   TerminalOutputEvent,
   OutputHandler,
   ErrorHandler,
   PaneChangeHandler,
+  NormalizedEventHandler,
 } from "./types";
 
-export type { EventBridgeConfig, TerminalOutputEvent } from "./types";
+export type {
+  EventBridgeConfig,
+  TerminalOutputEvent,
+  NormalizedEventHandler,
+} from "./types";
+export type { NormalizedTerminalEvent } from "@adwo/shared";
+export { DeltaDetector, stripAnsi, detectEventType } from "./delta-detector";
 
-const DEFAULT_CONFIG: EventBridgeConfig = {
+export interface EventBridgeFullConfig extends EventBridgeConfig {
+  projectId: string;
+}
+
+const DEFAULT_CONFIG: EventBridgeFullConfig = {
   stateFilePath: "",
   pollIntervalMs: 150,
   maxErrorCount: 5,
   baseBackoffMs: 1000,
   maxBackoffMs: 30000,
+  projectId: "default",
 };
 
 export class EventBridge {
-  private config: EventBridgeConfig;
+  private config: EventBridgeFullConfig;
   private stateWatcher: StateWatcher;
   private terminalReader: TerminalReader;
+  private deltaDetector: DeltaDetector;
   private outputHandlers: OutputHandler[] = [];
   private errorHandlers: ErrorHandler[] = [];
   private paneChangeHandlers: PaneChangeHandler[] = [];
+  private normalizedEventHandlers: NormalizedEventHandler[] = [];
   private running = false;
 
-  constructor(config: Partial<EventBridgeConfig> & { stateFilePath: string }) {
+  constructor(
+    config: Partial<EventBridgeFullConfig> & { stateFilePath: string }
+  ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
     this.stateWatcher = new StateWatcher({
@@ -62,6 +80,10 @@ export class EventBridge {
       maxBackoffMs: this.config.maxBackoffMs,
     });
 
+    this.deltaDetector = new DeltaDetector({
+      projectId: this.config.projectId,
+    });
+
     this.setupHandlers();
   }
 
@@ -69,8 +91,9 @@ export class EventBridge {
    * Wire up internal event handlers
    */
   private setupHandlers(): void {
-    // Forward terminal output events
+    // Forward terminal output events and process through delta detector
     this.terminalReader.onOutput((event) => {
+      // First, call raw output handlers
       for (const handler of this.outputHandlers) {
         try {
           handler(event);
@@ -78,6 +101,20 @@ export class EventBridge {
           console.error(
             `[EventBridge] Output handler error: ${(error as Error).message}`
           );
+        }
+      }
+
+      // Then, process through delta detector and emit normalized events
+      const normalizedEvents = this.deltaDetector.process(event);
+      for (const normalizedEvent of normalizedEvents) {
+        for (const handler of this.normalizedEventHandlers) {
+          try {
+            handler(normalizedEvent);
+          } catch (error) {
+            console.error(
+              `[EventBridge] Normalized event handler error: ${(error as Error).message}`
+            );
+          }
         }
       }
     });
@@ -100,6 +137,7 @@ export class EventBridge {
       // Remove old panes
       for (const paneId of removed) {
         this.terminalReader.removePane(paneId);
+        this.deltaDetector.clearPane(paneId);
       }
 
       // Add new panes
@@ -139,6 +177,13 @@ export class EventBridge {
    */
   onPaneChange(handler: PaneChangeHandler): void {
     this.paneChangeHandlers.push(handler);
+  }
+
+  /**
+   * Register normalized event handler (delta-detected, ANSI-stripped events)
+   */
+  onNormalizedEvent(handler: NormalizedEventHandler): void {
+    this.normalizedEventHandlers.push(handler);
   }
 
   /**
@@ -205,6 +250,22 @@ export class EventBridge {
    */
   removePane(paneId: string): void {
     this.terminalReader.removePane(paneId);
+    this.deltaDetector.clearPane(paneId);
+  }
+
+  /**
+   * Update the project ID for normalized events
+   */
+  setProjectId(projectId: string): void {
+    this.config.projectId = projectId;
+    this.deltaDetector.setProjectId(projectId);
+  }
+
+  /**
+   * Get current project ID
+   */
+  getProjectId(): string {
+    return this.config.projectId;
   }
 }
 
@@ -215,7 +276,7 @@ let eventBridgeInstance: EventBridge | null = null;
  * Get or create the EventBridge singleton
  */
 export function getEventBridge(
-  config?: Partial<EventBridgeConfig> & { stateFilePath: string }
+  config?: Partial<EventBridgeFullConfig> & { stateFilePath: string }
 ): EventBridge {
   if (!eventBridgeInstance) {
     if (!config?.stateFilePath) {

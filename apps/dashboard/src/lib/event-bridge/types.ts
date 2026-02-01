@@ -67,7 +67,11 @@ export interface EventBridgeConfig {
  */
 export type OutputHandler = (event: TerminalOutputEvent) => void;
 export type ErrorHandler = (paneId: string, error: Error) => void;
-export type PaneChangeHandler = (
-  added: string[],
-  removed: string[]
+export type PaneChangeHandler = (added: string[], removed: string[]) => void;
+
+/**
+ * Handler for normalized terminal events (after delta detection)
+ */
+export type NormalizedEventHandler = (
+  event: import("@adwo/shared").NormalizedTerminalEvent
 ) => void;

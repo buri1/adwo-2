@@ -37,8 +37,19 @@ export type {
   TerminalOutputEvent,
   NormalizedEventHandler,
 } from "./types";
-export type { NormalizedTerminalEvent } from "@adwo/shared";
+export type {
+  NormalizedTerminalEvent,
+  QuestionMetadata,
+  QuestionOption,
+} from "@adwo/shared";
 export { DeltaDetector, stripAnsi, detectEventType } from "./delta-detector";
+export {
+  QuestionDetector,
+  isQuestionPattern,
+  parseQuestion,
+  getQuestionDetector,
+  resetQuestionDetector,
+} from "./question-detector";
 
 export interface EventBridgeFullConfig extends EventBridgeConfig {
   projectId: string;

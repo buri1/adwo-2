@@ -11,7 +11,9 @@ import type { TerminalOutputEvent } from "./types";
 import type {
   NormalizedTerminalEvent,
   TerminalEventType,
+  QuestionMetadata,
 } from "@adwo/shared";
+import { isQuestionPattern, parseQuestion } from "./question-detector";
 
 /**
  * ANSI escape code regex pattern
@@ -23,8 +25,10 @@ const ANSI_PATTERN =
 
 /**
  * Question detection patterns for Claude/AI prompts
+ * Note: AskUserQuestion pattern (☐ ... Enter to select) is handled by QuestionDetector
  */
 const QUESTION_PATTERNS = [
+  /☐.*Enter to select/s, // Claude AskUserQuestion pattern (highest priority)
   /\?\s*$/m, // Ends with question mark
   /\(y\/n\)/i, // Yes/no prompt
   /\[y\/N\]/i, // Yes/No with default
@@ -304,6 +308,14 @@ export class DeltaDetector {
       timestamp: new Date(timestamp).toISOString(),
       project_id: this.config.projectId,
     };
+
+    // If this is a question type, try to parse AskUserQuestion metadata
+    if (eventType === "question" && isQuestionPattern(trimmedDelta)) {
+      const questionMetadata = parseQuestion(trimmedDelta);
+      if (questionMetadata) {
+        event.question_metadata = questionMetadata;
+      }
+    }
 
     return [event];
   }

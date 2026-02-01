@@ -421,6 +421,43 @@ describe("DeltaDetector", () => {
 
       expect(events[0]!.type).toBe("error");
     });
+
+    it("should detect AskUserQuestion pattern and include question_metadata", () => {
+      const askUserQuestionContent = `☐ Auth method
+
+Which method?
+
+1. OAuth
+2. JWT
+
+Enter to select`;
+
+      const event: TerminalOutputEvent = {
+        paneId: "pane-1",
+        content: askUserQuestionContent,
+        timestamp: Date.now(),
+      };
+
+      const events = detector.process(event);
+
+      expect(events[0]!.type).toBe("question");
+      expect(events[0]!.question_metadata).toBeDefined();
+      expect(events[0]!.question_metadata!.header).toBe("Auth method");
+      expect(events[0]!.question_metadata!.options).toHaveLength(2);
+    });
+
+    it("should not include question_metadata for simple questions", () => {
+      const event: TerminalOutputEvent = {
+        paneId: "pane-1",
+        content: "Do you want to continue?",
+        timestamp: Date.now(),
+      };
+
+      const events = detector.process(event);
+
+      expect(events[0]!.type).toBe("question");
+      expect(events[0]!.question_metadata).toBeUndefined();
+    });
   });
 
   describe("Pane Management", () => {

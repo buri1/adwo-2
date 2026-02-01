@@ -1,9 +1,10 @@
 /**
  * ADWO 2.0 Question Store
- * Story 3.2 — Question Display in Chat UI
+ * Story 3.2 & 3.3 — Question Display and Answer in Chat UI
  *
  * Manages pending questions from agent events.
  * Questions are tracked by event ID and displayed in chronological order.
+ * Supports answering questions and tracking answered state.
  */
 
 import { create } from "zustand";
@@ -17,6 +18,12 @@ export interface PendingQuestion {
   paneId: string;
   timestamp: string;
   metadata: QuestionMetadata;
+  /** Whether the question has been answered */
+  answered?: boolean;
+  /** The user's answer text */
+  userAnswer?: string;
+  /** Timestamp when answered */
+  answeredAt?: string;
 }
 
 export interface QuestionState {
@@ -29,6 +36,8 @@ interface QuestionActions {
   addQuestion: (event: NormalizedTerminalEvent) => void;
   /** Add multiple questions from events */
   addQuestions: (events: NormalizedTerminalEvent[]) => void;
+  /** Mark a question as answered with the user's response */
+  answerQuestion: (questionId: string, answer: string) => void;
   /** Remove a question by its ID (e.g., when answered) */
   removeQuestion: (questionId: string) => void;
   /** Remove all questions from a specific pane */
@@ -39,6 +48,8 @@ interface QuestionActions {
   getQuestionsByPane: (paneId: string) => PendingQuestion[];
   /** Check if there are any pending questions */
   hasPendingQuestions: () => boolean;
+  /** Get a question by ID */
+  getQuestion: (questionId: string) => PendingQuestion | undefined;
 }
 
 const initialState: QuestionState = {
@@ -108,6 +119,20 @@ export const useQuestionStore = create<QuestionState & QuestionActions>(
         return { questions };
       }),
 
+    answerQuestion: (questionId: string, answer: string) =>
+      set((state) => ({
+        questions: state.questions.map((q) =>
+          q.id === questionId
+            ? {
+                ...q,
+                answered: true,
+                userAnswer: answer,
+                answeredAt: new Date().toISOString(),
+              }
+            : q
+        ),
+      })),
+
     removeQuestion: (questionId: string) =>
       set((state) => ({
         questions: state.questions.filter((q) => q.id !== questionId),
@@ -125,7 +150,11 @@ export const useQuestionStore = create<QuestionState & QuestionActions>(
     },
 
     hasPendingQuestions: () => {
-      return get().questions.length > 0;
+      return get().questions.some((q) => !q.answered);
+    },
+
+    getQuestion: (questionId: string) => {
+      return get().questions.find((q) => q.id === questionId);
     },
   })
 );

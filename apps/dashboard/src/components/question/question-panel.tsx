@@ -1,14 +1,15 @@
 /**
  * ADWO 2.0 Question Panel Component
- * Story 3.2 — Question Display in Chat UI
+ * Story 3.2 & 3.3 — Question Display and Answer in Chat UI
  *
  * Displays multiple pending questions in a chat-style UI.
  * Questions appear in chronological order with visual distinction.
+ * Supports answering questions via API call to backend.
  */
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircleQuestion, Inbox } from "lucide-react";
@@ -19,7 +20,27 @@ import { QuestionCard } from "./question-card";
 interface QuestionPanelProps {
   className?: string;
   maxHeight?: string;
+  /** @deprecated Use onAnswer instead */
   onOptionSelect?: (questionId: string, optionNumber: number) => void;
+}
+
+async function sendAnswerToBackend(
+  questionId: string,
+  paneId: string,
+  answer: string
+): Promise<void> {
+  const response = await fetch("/api/questions/answer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ questionId, paneId, answer }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || "Failed to send answer");
+  }
 }
 
 export function QuestionPanel({
@@ -29,6 +50,7 @@ export function QuestionPanel({
 }: QuestionPanelProps) {
   const questions = useQuestionStore((state) => state.questions);
   const addQuestions = useQuestionStore((state) => state.addQuestions);
+  const answerQuestion = useQuestionStore((state) => state.answerQuestion);
   const events = useEventStore((state) => state.events);
 
   // Sync question events from event store
@@ -41,7 +63,18 @@ export function QuestionPanel({
     }
   }, [events, addQuestions]);
 
-  const pendingCount = questions.length;
+  const handleAnswer = useCallback(
+    async (questionId: string, paneId: string, answer: string) => {
+      // Send to backend first
+      await sendAnswerToBackend(questionId, paneId, answer);
+      // Mark as answered in store
+      answerQuestion(questionId, answer);
+    },
+    [answerQuestion]
+  );
+
+  // Count only unanswered questions
+  const pendingCount = questions.filter((q) => !q.answered).length;
 
   return (
     <Card className={`flex flex-col ${maxHeight} ${className}`}>
@@ -78,6 +111,7 @@ export function QuestionPanel({
                 <QuestionCard
                   key={question.id}
                   question={question}
+                  onAnswer={handleAnswer}
                   onOptionSelect={onOptionSelect}
                 />
               ))}

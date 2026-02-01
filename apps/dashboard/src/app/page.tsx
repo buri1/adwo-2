@@ -2,6 +2,7 @@ import { getConfig } from "@/lib/config";
 import { EventStreamPanel } from "@/components/event-stream";
 import { StartOrchestratorButton, StopOrchestratorButton } from "@/components/orchestrator";
 import { QuestionPanel } from "@/components/question";
+import { CostIndicator, CostPanel } from "@/components/cost";
 
 export default async function HomePage() {
   const { config, source } = await getConfig();
@@ -18,9 +19,12 @@ export default async function HomePage() {
               Agent-Driven Workflow Orchestration
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <StartOrchestratorButton />
-            <StopOrchestratorButton />
+          <div className="flex items-center gap-3">
+            <CostIndicator warningThreshold={5.0} />
+            <div className="flex items-center gap-2">
+              <StartOrchestratorButton />
+              <StopOrchestratorButton />
+            </div>
           </div>
         </header>
 
@@ -30,10 +34,16 @@ export default async function HomePage() {
             <EventStreamPanel maxHeight="h-[calc(100vh-200px)]" />
           </div>
 
-          {/* Sidebar with Questions and Config */}
+          {/* Sidebar with Questions, Cost and Config */}
           <div className="space-y-6">
             {/* Question Panel */}
-            <QuestionPanel maxHeight="h-[calc(50vh-100px)]" />
+            <QuestionPanel maxHeight="h-[calc(33vh-80px)]" />
+
+            {/* Cost Panel */}
+            <CostPanel
+              warningThreshold={5.0}
+              maxHeight="h-[calc(33vh-80px)]"
+            />
 
             {/* Config Panel */}
             <div className="rounded-lg border bg-card p-6">

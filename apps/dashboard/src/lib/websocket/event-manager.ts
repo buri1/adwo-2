@@ -1,28 +1,54 @@
 /**
  * Event Manager
  * Story 1.4 — WebSocket Server
+ * Story 5.1 — SQLite Persistence for Events
  *
- * Coordinates the RingBuffer and WebSocket Broadcaster.
- * Receives events from EventBridge and manages distribution.
+ * Coordinates the RingBuffer, WebSocket Broadcaster, and EventStore.
+ * Receives events from EventBridge and manages distribution and persistence.
  */
 
 import type { Server } from "http";
 import type { NormalizedTerminalEvent } from "@adwo/shared";
 import { RingBuffer } from "./ring-buffer";
 import { WebSocketBroadcaster } from "./broadcaster";
+import { getEventStore, resetEventStore, type EventStore, type EventStoreConfig, type EventQueryOptions, type EventQueryResult } from "../persistence";
 
 // Default buffer size: 1000 events (AC5)
 const DEFAULT_BUFFER_SIZE = 1000;
 
+export interface EventManagerConfig {
+  maxBufferSize?: number;
+  persistence?: Partial<EventStoreConfig>;
+  enablePersistence?: boolean;
+}
+
 export class EventManager {
   private buffer: RingBuffer<NormalizedTerminalEvent>;
   private broadcaster: WebSocketBroadcaster | null = null;
+  private eventStore: EventStore | null = null;
+  private persistenceEnabled: boolean;
 
-  constructor(maxBufferSize = DEFAULT_BUFFER_SIZE) {
+  constructor(config: EventManagerConfig = {}) {
+    const { maxBufferSize = DEFAULT_BUFFER_SIZE, persistence, enablePersistence = true } = config;
+
     this.buffer = new RingBuffer<NormalizedTerminalEvent>(maxBufferSize);
+    this.persistenceEnabled = enablePersistence;
+
     console.log(
       `[EventManager] Initialized with buffer capacity: ${maxBufferSize}`
     );
+
+    // Initialize SQLite persistence (Story 5.1)
+    if (enablePersistence) {
+      try {
+        this.eventStore = getEventStore(persistence);
+        this.eventStore.initialize();
+        console.log("[EventManager] SQLite persistence enabled");
+      } catch (error) {
+        console.error("[EventManager] Failed to initialize persistence:", error);
+        this.eventStore = null;
+      }
+    }
   }
 
   /**
@@ -39,13 +65,19 @@ export class EventManager {
   }
 
   /**
-   * Emit an event: Push to buffer and broadcast to clients.
-   * AC5: Events are stored even without clients (max 1000)
+   * Emit an event: Push to buffer, persist to SQLite, and broadcast to clients.
+   * AC5: Events are stored even without clients (max 1000 in-memory)
    * AC3: Events are broadcast to all clients (<100ms)
+   * Story 5.1 AC2: Events are persisted async to SQLite (non-blocking)
    */
   public emit(event: NormalizedTerminalEvent) {
     // Always push to buffer (AC5)
     this.buffer.push(event);
+
+    // Persist to SQLite async (Story 5.1 AC2 - non-blocking)
+    if (this.eventStore) {
+      this.eventStore.insertAsync(event);
+    }
 
     // Broadcast if broadcaster is initialized
     if (this.broadcaster) {
@@ -123,6 +155,54 @@ export class EventManager {
   }
 
   /**
+   * Check if persistence is enabled and initialized.
+   */
+  public isPersistenceEnabled(): boolean {
+    return this.eventStore !== null && this.eventStore.isInitialized();
+  }
+
+  /**
+   * Get event history from SQLite (Story 5.1 AC4).
+   * For dashboard initial load after restart.
+   */
+  public getHistory(limit = 100): NormalizedTerminalEvent[] {
+    if (!this.eventStore) {
+      console.warn("[EventManager] Persistence not enabled, returning buffer");
+      return this.buffer.getAll();
+    }
+
+    try {
+      return this.eventStore.getRecent(limit);
+    } catch (error) {
+      console.error("[EventManager] Failed to get history from SQLite:", error);
+      return this.buffer.getAll();
+    }
+  }
+
+  /**
+   * Query events from SQLite with filtering options.
+   */
+  public queryHistory(options: EventQueryOptions = {}): EventQueryResult | null {
+    if (!this.eventStore) {
+      return null;
+    }
+
+    try {
+      return this.eventStore.query(options);
+    } catch (error) {
+      console.error("[EventManager] Failed to query history:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get the EventStore instance (for direct access if needed).
+   */
+  public getEventStore(): EventStore | null {
+    return this.eventStore;
+  }
+
+  /**
    * Cleanup resources.
    */
   public close() {
@@ -130,6 +210,7 @@ export class EventManager {
       this.broadcaster.close();
       this.broadcaster = null;
     }
+    // EventStore is managed as singleton, don't close here
   }
 }
 
@@ -139,9 +220,9 @@ let eventManagerInstance: EventManager | null = null;
 /**
  * Get or create the EventManager singleton.
  */
-export function getEventManager(maxBufferSize?: number): EventManager {
+export function getEventManager(config?: EventManagerConfig): EventManager {
   if (!eventManagerInstance) {
-    eventManagerInstance = new EventManager(maxBufferSize);
+    eventManagerInstance = new EventManager(config);
   }
   return eventManagerInstance;
 }
@@ -154,4 +235,6 @@ export function resetEventManager(): void {
     eventManagerInstance.close();
     eventManagerInstance = null;
   }
+  // Also reset the EventStore singleton
+  resetEventStore();
 }

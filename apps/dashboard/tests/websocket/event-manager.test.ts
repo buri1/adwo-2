@@ -1,6 +1,7 @@
 /**
  * EventManager Tests
  * Story 1.4 — WebSocket Server
+ * Story 5.1 — SQLite Persistence for Events
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -29,7 +30,8 @@ describe("EventManager", () => {
   let manager: EventManager;
 
   beforeEach(() => {
-    manager = new EventManager(100);
+    // Disable persistence for unit tests to avoid SQLite file creation
+    manager = new EventManager({ maxBufferSize: 100, enablePersistence: false });
   });
 
   afterEach(() => {
@@ -57,7 +59,7 @@ describe("EventManager", () => {
     });
 
     it("should respect buffer capacity of 1000 (AC5)", () => {
-      const largeManager = new EventManager(1000);
+      const largeManager = new EventManager({ maxBufferSize: 1000, enablePersistence: false });
 
       for (let i = 0; i < 1100; i++) {
         largeManager.emit(createEvent(String(i)));
@@ -110,13 +112,13 @@ describe("EventManager", () => {
     it("should return the configured capacity", () => {
       expect(manager.getBufferCapacity()).toBe(100);
 
-      const customManager = new EventManager(500);
+      const customManager = new EventManager({ maxBufferSize: 500, enablePersistence: false });
       expect(customManager.getBufferCapacity()).toBe(500);
       customManager.close();
     });
 
     it("should default to 1000", () => {
-      const defaultManager = new EventManager();
+      const defaultManager = new EventManager({ enablePersistence: false });
       expect(defaultManager.getBufferCapacity()).toBe(1000);
       defaultManager.close();
     });
@@ -144,22 +146,22 @@ describe("EventManager Singleton", () => {
   });
 
   it("should return the same instance on multiple calls", () => {
-    const manager1 = getEventManager();
-    const manager2 = getEventManager();
+    const manager1 = getEventManager({ enablePersistence: false });
+    const manager2 = getEventManager({ enablePersistence: false });
 
     expect(manager1).toBe(manager2);
   });
 
   it("should reset the singleton", () => {
-    const manager1 = getEventManager();
+    const manager1 = getEventManager({ enablePersistence: false });
     resetEventManager();
-    const manager2 = getEventManager();
+    const manager2 = getEventManager({ enablePersistence: false });
 
     expect(manager1).not.toBe(manager2);
   });
 
   it("should use custom buffer size on first call", () => {
-    const manager = getEventManager(500);
+    const manager = getEventManager({ maxBufferSize: 500, enablePersistence: false });
 
     expect(manager.getBufferCapacity()).toBe(500);
   });

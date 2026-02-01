@@ -42,38 +42,69 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: 210 40% 98%;
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Deep dark background with subtle blue tint */
+  --background: oklch(0.12 0.01 260);
+  --foreground: oklch(0.95 0 0);
+
+  /* Cards with subtle elevation */
+  --card: oklch(0.16 0.01 260);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.18 0.01 260);
+  --popover-foreground: oklch(0.95 0 0);
+
+  /* Primary - vibrant cyan/blue */
+  --primary: oklch(0.7 0.15 200);
+  --primary-foreground: oklch(0.12 0 0);
+
+  /* Secondary - muted */
+  --secondary: oklch(0.22 0.01 260);
+  --secondary-foreground: oklch(0.9 0 0);
+
+  /* Muted elements */
+  --muted: oklch(0.2 0.01 260);
+  --muted-foreground: oklch(0.6 0 0);
+
+  /* Accent - subtle highlight */
+  --accent: oklch(0.25 0.02 260);
+  --accent-foreground: oklch(0.95 0 0);
+
+  /* Destructive - red */
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* Borders with low opacity */
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.7 0.15 200);
+
+  /* Event type colors */
+  --event-text: oklch(0.75 0.1 200);
+  --event-tool: oklch(0.75 0.15 140);
+  --event-hook: oklch(0.75 0.15 300);
+  --event-result: oklch(0.75 0.15 80);
+  --event-error: oklch(0.7 0.2 25);
+
+  /* Agent status colors */
+  --status-active: oklch(0.7 0.2 145);
+  --status-idle: oklch(0.6 0.1 80);
+  --status-error: oklch(0.65 0.2 25);
+
+  /* Chart colors - vibrant */
+  --chart-1: oklch(0.65 0.2 200);
+  --chart-2: oklch(0.65 0.18 145);
+  --chart-3: oklch(0.7 0.18 80);
+  --chart-4: oklch(0.65 0.2 300);
+  --chart-5: oklch(0.65 0.2 25);
+
+  /* Sidebar - slightly lighter than background */
+  --sidebar: oklch(0.14 0.01 260);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.7 0.15 200);
+  --sidebar-primary-foreground: oklch(0.95 0 0);
+  --sidebar-accent: oklch(0.2 0.01 260);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.7 0.15 200);
 }
 
 * {
@@ -132,5 +163,64 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+}
+
+/* Custom scrollbar for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 15%);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 25%);
+}
+
+/* Subtle glow effect for active elements */
+.glow-primary {
+  box-shadow: 0 0 20px oklch(0.7 0.15 200 / 20%);
+}
+
+.glow-success {
+  box-shadow: 0 0 15px oklch(0.7 0.2 145 / 25%);
+}
+
+/* Event type indicator pills */
+.event-pill {
+  @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+.event-pill-text {
+  background: oklch(0.75 0.1 200 / 15%);
+  color: oklch(0.8 0.1 200);
+}
+
+.event-pill-tool {
+  background: oklch(0.75 0.15 140 / 15%);
+  color: oklch(0.8 0.15 140);
+}
+
+.event-pill-hook {
+  background: oklch(0.75 0.15 300 / 15%);
+  color: oklch(0.8 0.15 300);
+}
+
+.event-pill-result {
+  background: oklch(0.75 0.15 80 / 15%);
+  color: oklch(0.8 0.15 80);
+}
+
+.event-pill-error {
+  background: oklch(0.7 0.2 25 / 15%);
+  color: oklch(0.8 0.2 25);
 }

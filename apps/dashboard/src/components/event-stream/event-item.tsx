@@ -20,7 +20,7 @@ import type { NormalizedTerminalEvent, TerminalEventType } from "@adwo/shared";
 
 interface EventItemProps {
   event: NormalizedTerminalEvent;
-  paneColors: Map<string, string>;
+  paneColors?: Map<string, string>;
 }
 
 // Color palette for panes (will cycle through)
@@ -82,13 +82,17 @@ function formatTimestamp(isoString: string): string {
 
 const DEFAULT_PANE_COLOR = "bg-blue-500/20 text-blue-400 border-blue-500/30";
 
-function getPaneColor(paneId: string, paneColors: Map<string, string>): string {
-  if (!paneColors.has(paneId)) {
-    const colorIndex = paneColors.size % PANE_COLORS.length;
+// Global pane color cache for when paneColors prop is not provided
+const globalPaneColors = new Map<string, string>();
+
+function getPaneColor(paneId: string, paneColors?: Map<string, string>): string {
+  const colorMap = paneColors ?? globalPaneColors;
+  if (!colorMap.has(paneId)) {
+    const colorIndex = colorMap.size % PANE_COLORS.length;
     const color = PANE_COLORS[colorIndex] ?? DEFAULT_PANE_COLOR;
-    paneColors.set(paneId, color);
+    colorMap.set(paneId, color);
   }
-  return paneColors.get(paneId) ?? DEFAULT_PANE_COLOR;
+  return colorMap.get(paneId) ?? DEFAULT_PANE_COLOR;
 }
 
 function formatPaneId(paneId: string): string {

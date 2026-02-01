@@ -1,6 +1,6 @@
 import { getConfig } from "@/lib/config";
 import { EventStreamPanel } from "@/components/event-stream";
-import { StartOrchestratorButton } from "@/components/orchestrator";
+import { StartOrchestratorButton, StopOrchestratorButton } from "@/components/orchestrator";
 
 export default async function HomePage() {
   const { config, source } = await getConfig();
@@ -17,7 +17,10 @@ export default async function HomePage() {
               Agent-Driven Workflow Orchestration
             </p>
           </div>
-          <StartOrchestratorButton />
+          <div className="flex items-center gap-2">
+            <StartOrchestratorButton />
+            <StopOrchestratorButton />
+          </div>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-3">

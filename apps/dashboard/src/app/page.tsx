@@ -1,5 +1,6 @@
 import { getConfig } from "@/lib/config";
 import { EventStreamPanel } from "@/components/event-stream";
+import { StartOrchestratorButton } from "@/components/orchestrator";
 
 export default async function HomePage() {
   const { config, source } = await getConfig();
@@ -7,13 +8,16 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight">
-            ADWO 2.0 Dashboard
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Agent-Driven Workflow Orchestration
-          </p>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">
+              ADWO 2.0 Dashboard
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Agent-Driven Workflow Orchestration
+            </p>
+          </div>
+          <StartOrchestratorButton />
         </header>
 
         <div className="grid gap-6 lg:grid-cols-3">

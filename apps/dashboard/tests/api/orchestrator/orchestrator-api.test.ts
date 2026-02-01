@@ -5,6 +5,7 @@
  * - POST /api/orchestrator/start
  * - POST /api/orchestrator/stop
  * - POST /api/orchestrator/message
+ * - GET /api/orchestrator/status
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -34,6 +35,7 @@ vi.mock("@/lib/orchestrator/state", () => ({
     () => mockState !== null && mockState.status !== "stopping"
   ),
   saveStateToFile: vi.fn(),
+  loadStateFromFile: vi.fn(),
 }));
 
 import {
@@ -47,6 +49,7 @@ import {
   setOrchestratorState,
   isOrchestratorRunning,
   saveStateToFile,
+  loadStateFromFile,
 } from "@/lib/orchestrator/state";
 
 const mockPaneSplit = paneSplit as ReturnType<typeof vi.fn>;
@@ -65,6 +68,9 @@ const mockIsOrchestratorRunning = isOrchestratorRunning as ReturnType<
 import { POST as startHandler } from "@/app/api/orchestrator/start/route";
 import { POST as stopHandler } from "@/app/api/orchestrator/stop/route";
 import { POST as messageHandler } from "@/app/api/orchestrator/message/route";
+import { GET as statusHandler } from "@/app/api/orchestrator/status/route";
+
+const mockLoadStateFromFile = loadStateFromFile as ReturnType<typeof vi.fn>;
 
 // Helper to create NextRequest
 function createRequest(body?: unknown): Request {
@@ -260,6 +266,66 @@ describe("Orchestrator API Routes", () => {
 
       expect(response.status).toBe(404);
       expect(data.error).toBe("Orchestrator is not running");
+    });
+  });
+
+  describe("GET /api/orchestrator/status", () => {
+    it("should return stopped status when orchestrator is not running", async () => {
+      mockLoadStateFromFile.mockResolvedValue(undefined);
+
+      const response = await statusHandler();
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.isRunning).toBe(false);
+      expect(data.status).toBe("stopped");
+      expect(data.paneId).toBeNull();
+      expect(data.startedAt).toBeNull();
+    });
+
+    it("should return running status when orchestrator is running", async () => {
+      const startedAt = new Date().toISOString();
+      mockState = {
+        paneId: "running-pane-123",
+        startedAt,
+        status: "running",
+      };
+      mockLoadStateFromFile.mockResolvedValue(undefined);
+
+      const response = await statusHandler();
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.isRunning).toBe(true);
+      expect(data.status).toBe("running");
+      expect(data.paneId).toBe("running-pane-123");
+      expect(data.startedAt).toBe(startedAt);
+    });
+
+    it("should return starting status when orchestrator is starting", async () => {
+      const startedAt = new Date().toISOString();
+      mockState = {
+        paneId: "starting-pane",
+        startedAt,
+        status: "starting",
+      };
+      mockLoadStateFromFile.mockResolvedValue(undefined);
+
+      const response = await statusHandler();
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.isRunning).toBe(true);
+      expect(data.status).toBe("starting");
+      expect(data.paneId).toBe("starting-pane");
+    });
+
+    it("should attempt to load state from file when not in memory", async () => {
+      mockLoadStateFromFile.mockResolvedValue(undefined);
+
+      await statusHandler();
+
+      expect(mockLoadStateFromFile).toHaveBeenCalled();
     });
   });
 });

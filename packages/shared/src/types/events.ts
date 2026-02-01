@@ -1,0 +1,60 @@
+/**
+ * ADWO 2.0 Event Types
+ * Core event types for agent communication and WebSocket broadcast
+ */
+
+/**
+ * Agent event types for the event stream
+ */
+export type AgentEventType =
+  | "agent:start"
+  | "agent:end"
+  | "agent:error"
+  | "tool:start"
+  | "tool:end"
+  | "tool:error"
+  | "workflow:start"
+  | "workflow:end"
+  | "workflow:error"
+  | "message"
+  | "thinking"
+  | "output";
+
+/**
+ * Core agent event structure
+ * All events in the system follow this schema
+ */
+export interface AgentEvent {
+  id: string;
+  type: AgentEventType;
+  timestamp: string;
+  agentId?: string;
+  workflowId?: string;
+  data: Record<string, unknown>;
+}
+
+/**
+ * Agent state for tracking active agents
+ */
+export interface AgentState {
+  id: string;
+  name: string;
+  status: "idle" | "running" | "error" | "completed";
+  currentPhase?: string;
+  startedAt?: string;
+  endedAt?: string;
+}
+
+/**
+ * Workflow state for tracking workflow progress
+ */
+export interface WorkflowState {
+  id: string;
+  name: string;
+  status: "pending" | "running" | "completed" | "failed";
+  currentPhase?: string;
+  phases: string[];
+  completedPhases: string[];
+  startedAt?: string;
+  endedAt?: string;
+}

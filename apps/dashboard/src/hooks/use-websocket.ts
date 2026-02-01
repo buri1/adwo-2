@@ -1,6 +1,7 @@
 /**
  * ADWO 2.0 WebSocket Hook
  * Story 1.5 — Dashboard Event Stream UI
+ * Story 4.1 — OTEL Receiver for Cost Metrics
  *
  * Client-side WebSocket connection management with auto-reconnect.
  * Handles connection lifecycle, sync requests, and event dispatching.
@@ -11,6 +12,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useConnectionStore } from "@/stores/connection-store";
 import { useEventStore } from "@/stores/event-store";
+import { useCostStore } from "@/stores/cost-store";
 import type {
   WebSocketMessage,
   ConnectedPayload,
@@ -19,6 +21,7 @@ import type {
   SyncRequestPayload,
   HeartbeatPayload,
   ErrorPayload,
+  CostUpdatePayload,
 } from "@adwo/shared";
 
 const RECONNECT_INTERVAL = 2000; // 2 seconds
@@ -57,6 +60,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   // Event store actions
   const { addEvent, addEvents, lastEventId, lastEventTimestamp } =
     useEventStore();
+
+  // Cost store actions
+  const { addCostMetric } = useCostStore();
 
   const clearReconnectTimeout = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -137,6 +143,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             break;
           }
 
+          case "cost_update": {
+            const payload = message.payload as CostUpdatePayload;
+            addCostMetric(payload.metric, payload.totals, payload.paneId);
+            break;
+          }
+
           default:
             console.warn("[WebSocket] Unknown message type:", message.type);
         }
@@ -144,7 +156,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         console.error("[WebSocket] Failed to parse message:", error);
       }
     },
-    [setConnected, addEvent, addEvents, lastEventId, sendSyncRequest]
+    [setConnected, addEvent, addEvents, addCostMetric, lastEventId, sendSyncRequest]
   );
 
   const connect = useCallback(() => {

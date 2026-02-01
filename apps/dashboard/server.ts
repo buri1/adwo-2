@@ -1,15 +1,18 @@
 /**
  * Custom Next.js Server with WebSocket Support
  * Story 1.4 — WebSocket Server
+ * Story 4.1 — OTEL Receiver for Cost Metrics
  *
  * This server enables WebSocket connections at ws://localhost:3000/api/ws
  * alongside the standard Next.js HTTP server.
+ * Also starts OTEL receiver on port 4318 for Claude Code metrics.
  */
 
 import { createServer } from "http";
 import { parse } from "url";
 import next from "next";
 import { getEventManager } from "./src/lib/websocket/event-manager";
+import { getOtelReceiver } from "./src/lib/otel";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -35,8 +38,27 @@ app.prepare().then(() => {
   const eventManager = getEventManager();
   eventManager.initialize(server);
 
+  // Initialize OTEL receiver with cost update broadcasting
+  // This creates an HTTP server on port 4318 for OTLP metrics
+  const otelReceiver = getOtelReceiver({
+    onCostUpdate: (payload) => {
+      // Broadcast cost updates to all WebSocket clients
+      eventManager.broadcastRaw({
+        type: "cost_update",
+        payload,
+        timestamp: new Date().toISOString(),
+      });
+    },
+  });
+
+  // Start OTEL receiver
+  otelReceiver.start().catch((err) => {
+    console.error("[Server] Failed to start OTEL receiver:", err);
+  });
+
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> WebSocket available at ws://${hostname}:${port}/api/ws`);
+    console.log(`> OTEL receiver at http://${hostname}:4318/v1/metrics`);
   });
 });

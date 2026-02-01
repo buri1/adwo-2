@@ -1,9 +1,11 @@
 /**
  * ADWO 2.0 WebSocket Message Protocol Types
  * Story 1.4 — WebSocket Server
+ * Story 4.1 — OTEL Receiver for Cost Metrics
  */
 
 import type { NormalizedTerminalEvent, AgentState, WorkflowState } from "./events.js";
+import type { CostMetric, CostTotals } from "./cost.js";
 
 /**
  * WebSocket message types for server-client communication
@@ -14,7 +16,8 @@ export type WebSocketMessageType =
   | "sync_request"
   | "event"
   | "heartbeat"
-  | "error";
+  | "error"
+  | "cost_update";
 
 /**
  * Base WebSocket message structure
@@ -72,6 +75,19 @@ export interface HeartbeatPayload {
 export interface ErrorPayload {
   code: string;
   message: string;
+}
+
+/**
+ * Cost update payload — sent when new cost metrics are received
+ * Story 4.1 — OTEL Receiver for Cost Metrics
+ */
+export interface CostUpdatePayload {
+  /** The new cost metric */
+  metric: CostMetric;
+  /** Updated totals for the pane */
+  totals: CostTotals;
+  /** Pane ID for association */
+  paneId: string;
 }
 
 /**

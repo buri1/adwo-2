@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { Play, Loader2, CheckCircle } from "lucide-react";
+import { Play, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useOrchestratorStore } from "@/stores/orchestrator-store";
@@ -67,18 +67,12 @@ export function StartOrchestratorButton({ className }: StartOrchestratorButtonPr
     }
   }, [setStarting, setRunning, setError]);
 
-  const isRunning = status === "running";
+  const isRunning = status === "running" || status === "stopping";
   const isStarting = status === "starting" || isLoading;
 
+  // Don't show start button when orchestrator is running (StopOrchestratorButton handles that)
   if (isRunning) {
-    return (
-      <div className={className}>
-        <div className="flex items-center gap-2 rounded-md bg-green-500/10 px-4 py-2 text-green-500">
-          <CheckCircle className="h-4 w-4" />
-          <span className="text-sm font-medium">Orchestrator Running</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

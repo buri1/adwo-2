@@ -1,6 +1,7 @@
 /**
  * ADWO 2.0 Orchestrator Store Tests
  * Story 2.2 — Start Orchestrator Button
+ * Story 2.3 — Stop Orchestrator Button
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -66,6 +67,32 @@ describe("OrchestratorStore", () => {
       const state = useOrchestratorStore.getState();
       expect(state.isLoading).toBe(false);
       expect(state.lastError).toBeNull();
+    });
+  });
+
+  describe("setStopping", () => {
+    it("should set stopping status and loading state", () => {
+      const store = useOrchestratorStore.getState();
+      store.setRunning("pane-123", "2024-01-01T00:00:00Z");
+      store.setStopping();
+
+      const state = useOrchestratorStore.getState();
+      expect(state.status).toBe("stopping");
+      expect(state.isLoading).toBe(true);
+      expect(state.lastError).toBeNull();
+      // Pane info should be preserved during stopping
+      expect(state.paneId).toBe("pane-123");
+    });
+
+    it("should clear error when stopping", () => {
+      const store = useOrchestratorStore.getState();
+      store.setRunning("pane-123", "2024-01-01T00:00:00Z");
+      store.setError("Previous error");
+      // Reset back to running for this test
+      store.setStatus("running");
+      store.setStopping();
+
+      expect(useOrchestratorStore.getState().lastError).toBeNull();
     });
   });
 

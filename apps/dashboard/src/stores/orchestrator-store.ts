@@ -1,6 +1,7 @@
 /**
  * ADWO 2.0 Orchestrator Store
  * Story 2.2 — Start Orchestrator Button
+ * Story 2.3 — Stop Orchestrator Button
  *
  * Tracks orchestrator state for the dashboard UI.
  */
@@ -21,6 +22,7 @@ interface OrchestratorActions {
   setStatus: (status: OrchestratorStatus) => void;
   setStarting: () => void;
   setRunning: (paneId: string, startedAt: string) => void;
+  setStopping: () => void;
   setStopped: () => void;
   setError: (error: string) => void;
   clearError: () => void;
@@ -56,6 +58,13 @@ export const useOrchestratorStore = create<OrchestratorState & OrchestratorActio
         paneId,
         startedAt,
         isLoading: false,
+        lastError: null,
+      }),
+
+    setStopping: () =>
+      set({
+        status: "stopping",
+        isLoading: true,
         lastError: null,
       }),
 

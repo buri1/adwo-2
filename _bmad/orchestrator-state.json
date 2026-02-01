@@ -1,0 +1,15 @@
+{
+  "phase": "implementation",
+  "current_epic": 1,
+  "current_story": "1.1",
+  "active_agents": [],
+  "completed_stories": [],
+  "blocked_stories": [],
+  "last_compaction": null,
+  "project": {
+    "name": "adwo-2",
+    "repo": "https://github.com/buri1/adwo-2",
+    "total_stories": 15,
+    "total_epics": 5
+  }
+}

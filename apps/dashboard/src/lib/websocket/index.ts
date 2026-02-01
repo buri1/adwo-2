@@ -1,6 +1,7 @@
 /**
  * WebSocket Module
  * Story 1.4 — WebSocket Server
+ * Story 5.2 — Crash Recovery
  *
  * Exports all WebSocket-related components for real-time event streaming.
  */
@@ -15,3 +16,7 @@ export {
   getEventManager,
   resetEventManager,
 } from "./event-manager";
+export type { EventManagerConfig } from "./event-manager";
+
+// Re-export recovery types for convenience
+export type { RecoveryResult, RecoveryWarning } from "../recovery";

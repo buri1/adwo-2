@@ -81,4 +81,26 @@ export class RingBuffer<T extends TimestampedEvent> {
   capacity(): number {
     return this.maxSize;
   }
+
+  /**
+   * Load events in bulk (for recovery).
+   * Events are assumed to be in chronological order.
+   * If more events than capacity, only the most recent are kept.
+   */
+  loadBulk(events: T[]): void {
+    // If events exceed capacity, take only the most recent
+    const eventsToLoad = events.length > this.maxSize
+      ? events.slice(-this.maxSize)
+      : events;
+
+    // Replace current events
+    this.events = [...eventsToLoad];
+  }
+
+  /**
+   * Check if an event with the given ID exists in the buffer.
+   */
+  hasEvent(eventId: string): boolean {
+    return this.events.some(e => e.id === eventId);
+  }
 }

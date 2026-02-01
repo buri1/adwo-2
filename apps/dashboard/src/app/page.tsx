@@ -1,6 +1,7 @@
 import { getConfig } from "@/lib/config";
 import { EventStreamPanel } from "@/components/event-stream";
 import { StartOrchestratorButton, StopOrchestratorButton } from "@/components/orchestrator";
+import { QuestionPanel } from "@/components/question";
 
 export default async function HomePage() {
   const { config, source } = await getConfig();
@@ -29,8 +30,12 @@ export default async function HomePage() {
             <EventStreamPanel maxHeight="h-[calc(100vh-200px)]" />
           </div>
 
-          {/* Sidebar with Config */}
+          {/* Sidebar with Questions and Config */}
           <div className="space-y-6">
+            {/* Question Panel */}
+            <QuestionPanel maxHeight="h-[calc(50vh-100px)]" />
+
+            {/* Config Panel */}
             <div className="rounded-lg border bg-card p-6">
               <h2 className="text-lg font-semibold">Configuration</h2>
               <dl className="mt-4 space-y-2 text-sm">

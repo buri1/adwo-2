@@ -5,13 +5,18 @@ import { join } from "path";
  *
  * Called once when the Next.js server starts. Used to initialize
  * server-side services like the Event Bridge.
+ *
+ * Story 1.4: Normalized events are forwarded to EventManager for
+ * WebSocket broadcast. The WebSocket server itself is initialized
+ * in server.ts (custom server).
  */
 export async function register() {
   if (process.env["NEXT_RUNTIME"] === "nodejs") {
     console.log("[ADWO] Dashboard starting...");
 
-    // Dynamically import EventBridge to avoid client-side bundling
+    // Dynamically import EventBridge and EventManager to avoid client-side bundling
     const { getEventBridge } = await import("@/lib/event-bridge");
+    const { getEventManager } = await import("@/lib/websocket");
 
     // Resolve state file path
     // Default: orchestrator/_bmad/orchestrator-state.json from project root
@@ -21,8 +26,15 @@ export async function register() {
 
     try {
       const eventBridge = getEventBridge({ stateFilePath });
+      const eventManager = getEventManager();
 
-      // Log output events (will be replaced by WebSocket broadcast in Story 1.3)
+      // Forward normalized events to EventManager for WebSocket broadcast
+      // Story 1.4: Events are stored in RingBuffer and broadcast to clients
+      eventBridge.onNormalizedEvent((event) => {
+        eventManager.emit(event);
+      });
+
+      // Log output events for debugging
       eventBridge.onOutput((event) => {
         console.log(
           `[EventBridge] Output from pane ${event.paneId}: ${event.content.slice(0, 100)}...`
